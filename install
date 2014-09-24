@@ -7,13 +7,7 @@
 REDIS_LAUNCHER_DIR=${REDIS_LAUNCHER_DIR-/var/local/redis}
 REDIS_LOG_DIR=${REDIS_LOG_FILE-/var/log/redis}
 REDIS_DATA_DIR=${REDIS_DATA_DIR-/var/local/redis/data}
-
-REDIS_DATA_BASENAME=${REDIS_DATA_BASENAME-dump.rdb}
-
-REDIS_DATA_DIR=${REDIS_DATA_DIR-${REDIS_LAUNCHER_DIR}/data}
-REDIS_PORT=${REDIS_PORT-3306}
-REDIS_ADMIN_USERNAME=${REDIS_ADMIN_USERNAME-admin}
-REDIS_ADMIN_PASSWORD=${REDIS_ADMIN_PASSWORD-yth3fn0t}
+REDIS_PORT=${REDIS_PORT-6379}
 
 #-----------
 # Install Script
@@ -24,7 +18,7 @@ echo "Installing REDIS..."
 mkdir -p ${REDIS_LAUNCHER_DIR} ${REDIS_LOG_DIR} ${REDIS_DATA_DIR}
 
 cp ./submodules/redis/files/redis.dockerfile ${REDIS_LAUNCHER_DIR}/Dockerfile
-cp ./submodules/redis/files/redis.conf ${REDIS_LAUNCHER_DIR}/redis.conf
+cp -u ./submodules/redis/files/redis.conf ${REDIS_LAUNCHER_DIR}/redis.conf
 
 (cd ${REDIS_LAUNCHER_DIR} && docker build -t redis .)
 
@@ -32,12 +26,14 @@ echo "#!/bin/bash
 docker run -i -t \\
   -v ${REDIS_LOG_DIR}:/log \\
   -v ${REDIS_DATA_DIR}:/data \\
+  --link redis:rdb \\
   redis /bin/bash
 " > ${REDIS_LAUNCHER_DIR}/debug
 
 printf "%b" "#!/bin/bash
 docker rm redis > /dev/num
 docker run -d -t \\
+  -p ${REDIS_PORT}:6379 \\
   -v ${REDIS_LOG_DIR}:/log \\
   -v ${REDIS_DATA_DIR}:/data \\
   --name redis \\
