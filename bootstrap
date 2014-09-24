@@ -1,0 +1,9 @@
+#!/bin/bash
+
+mkdir -p ./nodes
+printf "%b" "
+#!/bin/bash
+./submodules/redis/install
+" > ./nodes/redis
+
+chmod 755 ./nodes/redis
