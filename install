@@ -9,6 +9,8 @@ REDIS_LOG_DIR=${REDIS_LOG_FILE-/var/log/redis}
 REDIS_DATA_DIR=${REDIS_DATA_DIR-/var/local/redis/data}
 REDIS_PORT=${REDIS_PORT-6379}
 
+DEBUG=${DEBUG-false}
+
 #-----------
 # Install Script
 #-----------
@@ -20,7 +22,7 @@ mkdir -p ${REDIS_LAUNCHER_DIR} ${REDIS_LOG_DIR} ${REDIS_DATA_DIR}
 cp ./submodules/redis/files/redis.dockerfile ${REDIS_LAUNCHER_DIR}/Dockerfile
 cp -u ./submodules/redis/files/redis.conf ${REDIS_LAUNCHER_DIR}/redis.conf
 
-(cd ${REDIS_LAUNCHER_DIR} && docker build -t redis .)
+DEBUG=$DEBUG LAUNCHER_DIR=$REDIS_LAUNCHER_DIR NAME=redis ./submodules/docker/build
 
 echo "#!/bin/bash
 docker run -i -t \\
