@@ -19,11 +19,13 @@ echo "Installing REDIS..."
 
 mkdir -p ${REDIS_LAUNCHER_DIR} ${REDIS_LOG_DIR} ${REDIS_DATA_DIR}
 
+echo "  -- Copying config files"
 cp ./submodules/redis/files/redis.dockerfile ${REDIS_LAUNCHER_DIR}/Dockerfile
 cp -u ./submodules/redis/files/redis.conf ${REDIS_LAUNCHER_DIR}/redis.conf
 
 DEBUG=$DEBUG LAUNCHER_DIR=$REDIS_LAUNCHER_DIR NAME=redis ./submodules/docker/build
 
+echo "  -- Creating helper scripts"
 echo "#!/bin/bash
 docker run -i -t \\
   -v ${REDIS_LOG_DIR}:/log \\
@@ -33,18 +35,26 @@ docker run -i -t \\
 " > ${REDIS_LAUNCHER_DIR}/debug
 
 printf "%b" "#!/bin/bash
-docker rm redis > /dev/num
-docker run -d -t \\
-  -p ${REDIS_PORT}:6379 \\
-  -v ${REDIS_LOG_DIR}:/log \\
-  -v ${REDIS_DATA_DIR}:/data \\
-  --name redis \\
-  redis
+CONTAINER_ID=\`${REDIS_LAUNCHER_DIR}/containerid\`
+if [[ \"\$CONTAINER_ID\" == \"\" ]]; then
+  echo \"Starting redis (${REDIS_PORT})\"
+  docker rm redis >> /dev/null
+  docker run -d -t \\
+    -p ${REDIS_PORT}:6379 \\
+    -v ${REDIS_LOG_DIR}:/log \\
+    -v ${REDIS_DATA_DIR}:/data \\
+    --name redis \\
+    redis 2>1 >> /dev/null
+else
+  echo \"Container redis already running, ${REDIS_LAUNCHER_DIR}/restart to restart it\"
+fi
 " > ${REDIS_LAUNCHER_DIR}/start
 
 NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/stop
+NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/restart
 NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/idempot
 NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/ip
+NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/containerid
 
 chmod 755 $REDIS_LAUNCHER_DIR/start
 chmod 755 $REDIS_LAUNCHER_DIR/debug
