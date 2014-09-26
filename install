@@ -35,7 +35,7 @@ docker run -i -t \\
 " > ${REDIS_LAUNCHER_DIR}/debug
 
 printf "%b" "#!/bin/bash
-CONTAINER_ID=\`${REDIS_LAUNCHER_DIR}/containerid\`
+CONTAINER_ID=\`cat ${REDIS_LAUNCHER_DIR}/container.pid 2> /dev/null\`
 if [[ \"\$CONTAINER_ID\" == \"\" ]]; then
   echo \"Starting redis (${REDIS_PORT})\"
   docker rm redis >> /dev/null
@@ -44,7 +44,7 @@ if [[ \"\$CONTAINER_ID\" == \"\" ]]; then
     -v ${REDIS_LOG_DIR}:/log \\
     -v ${REDIS_DATA_DIR}:/data \\
     --name redis \\
-    redis 2>1 >> /dev/null
+    redis 2> /dev/null > ${REDIS_LAUNCHER_DIR}/container.pid
 else
   echo \"Container redis already running, ${REDIS_LAUNCHER_DIR}/restart to restart it\"
 fi
@@ -54,10 +54,8 @@ NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/stop
 NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/restart
 NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/idempot
 NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/ip
-NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/containerid
 
 chmod 755 $REDIS_LAUNCHER_DIR/start
 chmod 755 $REDIS_LAUNCHER_DIR/debug
-chmod 755 $REDIS_LAUNCHER_DIR/ip
 
 echo "DONE, Installing REDIS."
