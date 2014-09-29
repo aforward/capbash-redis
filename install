@@ -38,7 +38,7 @@ printf "%b" "#!/bin/bash
 CONTAINER_ID=\`cat ${REDIS_LAUNCHER_DIR}/container.pid 2> /dev/null\`
 if [[ \"\$CONTAINER_ID\" == \"\" ]]; then
   echo \"Starting redis (${REDIS_PORT})\"
-  docker rm redis >> /dev/null
+  docker rm redis > /dev/null 2>&1
   docker run -d -t \\
     -p ${REDIS_PORT}:6379 \\
     -v ${REDIS_LOG_DIR}:/log \\
