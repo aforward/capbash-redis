@@ -35,7 +35,7 @@ docker run -i -t \\
 " > ${REDIS_LAUNCHER_DIR}/debug
 
 printf "%b" "#!/bin/bash
-CONTAINER_ID=\`cat ${REDIS_LAUNCHER_DIR}/container.pid 2> /dev/null\`
+CONTAINER_ID=\`${REDIS_LAUNCHER_DIR}/running\`
 if [[ \"\$CONTAINER_ID\" == \"\" ]]; then
   echo \"Starting redis (${REDIS_PORT})\"
   docker rm redis > /dev/null 2>&1
@@ -50,10 +50,7 @@ else
 fi
 " > ${REDIS_LAUNCHER_DIR}/start
 
-NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/stop
-NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/restart
-NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/idempot
-NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/ip
+NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/helpers
 
 chmod 755 $REDIS_LAUNCHER_DIR/start
 chmod 755 $REDIS_LAUNCHER_DIR/debug
