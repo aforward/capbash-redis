@@ -5,9 +5,11 @@
 #-----------
 
 REDIS_LAUNCHER_DIR=${REDIS_LAUNCHER_DIR-/var/local/redis}
-REDIS_LOG_DIR=${REDIS_LOG_FILE-/var/log/redis}
+REDIS_LOG_DIR=${REDIS_LOG_DIR-/var/log/redis}
+REDIS_CONFIG_DIR=${REDIS_CONFIG_DIR-$REDIS_LAUNCHER_DIR/config}
 REDIS_DATA_DIR=${REDIS_DATA_DIR-/var/local/redis/data}
 REDIS_PORT=${REDIS_PORT-6379}
+REDIS_VERSION=${REDIS_VERSION-default}
 
 DEBUG=${DEBUG-false}
 
@@ -17,11 +19,22 @@ DEBUG=${DEBUG-false}
 
 echo "Installing REDIS..."
 
-mkdir -p ${REDIS_LAUNCHER_DIR} ${REDIS_LOG_DIR} ${REDIS_DATA_DIR}
+mkdir -p ${REDIS_LAUNCHER_DIR} ${REDIS_LOG_DIR} ${REDIS_DATA_DIR} ${REDIS_CONFIG_DIR} ${REDIS_LAUNCHER_DIR}/src
 
 echo "  -- Copying config files"
-cp ./submodules/redis/files/redis.dockerfile ${REDIS_LAUNCHER_DIR}/Dockerfile
-cp -u ./submodules/redis/files/redis.conf ${REDIS_LAUNCHER_DIR}/redis.conf
+
+TEMPLATE=./submodules/redis/files/redis.conf LOCATION=${REDIS_CONFIG_DIR}/redis.conf ./submodules/docker/copyif
+
+if [[ "$REDIS_VERSION" != "default" ]]; then
+  REDIS_SRC_FILE=${REDIS_LAUNCHER_DIR}/src/redis-${REDIS_VERSION}.tar.gz
+  if [[ ! -e $REDIS_SRC_FILE ]]; then
+    (cd ${REDIS_LAUNCHER_DIR}/src/ && wget http://download.redis.io/releases/redis-${REDIS_VERSION}.tar.gz)
+  fi
+  cp ./submodules/redis/files/redis_version.dockerfile ${REDIS_LAUNCHER_DIR}/Dockerfile
+  sed -i "s|@REDIS_VERSION@|$REDIS_VERSION|g" ${REDIS_LAUNCHER_DIR}/Dockerfile
+else
+  cp ./submodules/redis/files/redis_default.dockerfile ${REDIS_LAUNCHER_DIR}/Dockerfile
+fi
 
 DEBUG=$DEBUG LAUNCHER_DIR=$REDIS_LAUNCHER_DIR NAME=redis ./submodules/docker/build
 
@@ -30,6 +43,7 @@ echo "#!/bin/bash
 docker run -i -t \\
   -v ${REDIS_LOG_DIR}:/log \\
   -v ${REDIS_DATA_DIR}:/data \\
+  -v ${REDIS_CONFIG_DIR}:/config \\
   --link redis:rdb \\
   redis /bin/bash
 " > ${REDIS_LAUNCHER_DIR}/debug
@@ -42,6 +56,7 @@ if [[ \"\$CONTAINER_ID\" == \"\" ]]; then
   docker run -d -t \\
     -p ${REDIS_PORT}:6379 \\
     -v ${REDIS_LOG_DIR}:/log \\
+    -v ${REDIS_CONFIG_DIR}:/config \\
     -v ${REDIS_DATA_DIR}:/data \\
     --name redis \\
     redis 2> /dev/null > ${REDIS_LAUNCHER_DIR}/container.pid
