@@ -1,4 +1,6 @@
 #!/bin/bash
+source ./submodules/bootstrap/logging
+set -euo pipefail ; IFS=$'\n\t'
 
 #-----------
 # Configurations
@@ -11,17 +13,15 @@ REDIS_DATA_DIR=${REDIS_DATA_DIR-/var/local/redis/data}
 REDIS_PORT=${REDIS_PORT-6379}
 REDIS_VERSION=${REDIS_VERSION-default}
 
-DEBUG=${DEBUG-false}
-
 #-----------
 # Install Script
 #-----------
 
-echo "Installing REDIS..."
+notify "Installing REDIS..."
 
 mkdir -p ${REDIS_LAUNCHER_DIR} ${REDIS_LOG_DIR} ${REDIS_DATA_DIR} ${REDIS_CONFIG_DIR} ${REDIS_LAUNCHER_DIR}/src
 
-echo "  -- Copying config files"
+notify "  -- Copying config files"
 
 TEMPLATE=./submodules/redis/files/redis.conf LOCATION=${REDIS_CONFIG_DIR}/redis.conf ./submodules/docker/copyif
 
@@ -36,9 +36,9 @@ else
   cp ./submodules/redis/files/redis_default.dockerfile ${REDIS_LAUNCHER_DIR}/Dockerfile
 fi
 
-DEBUG=$DEBUG LAUNCHER_DIR=$REDIS_LAUNCHER_DIR NAME=redis ./submodules/docker/build
+LAUNCHER_DIR=$REDIS_LAUNCHER_DIR NAME=redis ./submodules/docker/build
 
-echo "  -- Creating helper scripts"
+notify "  -- Creating helper scripts"
 echo "#!/bin/bash
 docker run -i -t \\
   -v ${REDIS_LOG_DIR}:/log \\
@@ -70,4 +70,4 @@ NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/helpers
 chmod 755 $REDIS_LAUNCHER_DIR/start
 chmod 755 $REDIS_LAUNCHER_DIR/debug
 
-echo "DONE, Installing REDIS."
+notify "DONE, Installing REDIS."
