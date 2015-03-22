@@ -39,8 +39,9 @@ if [[ "$REDIS_VERSION" != "default" ]]; then
   if [[ ! -e $REDIS_SRC_FILE ]]; then
     (cd ${REDIS_LAUNCHER_DIR}/src/ && wget http://download.redis.io/releases/redis-${REDIS_VERSION}.tar.gz)
   fi
-  TEMPLATE=./bits/redis/files/redis_version.dockerfile LOCATION=$REDIS_LAUNCHER_DIR/Dockerfile ./bits/docker/copyif
-  sed -i "s|@REDIS_VERSION@|$REDIS_VERSION|g" ${REDIS_LAUNCHER_DIR}/Dockerfile
+  TEMPLATE=./bits/redis/files/redis_version.dockerfile LOCATION=$REDIS_LAUNCHER_DIR/Dockerfile \
+    ./bits/docker/copyif \
+    @REDIS_VERSION@ $REDIS_VERSION
 else
   TEMPLATE=./bits/redis/files/redis_default.dockerfile LOCATION=$REDIS_LAUNCHER_DIR/Dockerfile ./bits/docker/copyif
 fi
