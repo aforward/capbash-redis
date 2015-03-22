@@ -1,15 +1,17 @@
 #!/bin/bash
-source ./submodules/bootstrap/logging
+source ./bits/bootstrap/logging
 set -euo pipefail ; IFS=$'\n\t'
 
 #-----------
 # Configurations
 #-----------
 
-REDIS_LAUNCHER_DIR=${REDIS_LAUNCHER_DIR-/var/local/redis}
-REDIS_LOG_DIR=${REDIS_LOG_DIR-/var/log/redis}
-REDIS_CONFIG_DIR=${REDIS_CONFIG_DIR-$REDIS_LAUNCHER_DIR/config}
-REDIS_DATA_DIR=${REDIS_DATA_DIR-/var/local/redis/data}
+LAUNCHER_OWNER=${LAUNCHER_OWNER-$USER}
+export LAUNCHER_DIR=${LAUNCHER_DIR-/var/local}
+export REDIS_LAUNCHER_DIR=${REDIS_LAUNCHER_DIR-$LAUNCHER_DIR/redis}
+export REDIS_LOG_DIR=${REDIS_LOG_DIR-/var/log/redis}
+export REDIS_CONFIG_DIR=${REDIS_CONFIG_DIR-$REDIS_LAUNCHER_DIR/config}
+export REDIS_DATA_DIR=${REDIS_DATA_DIR-/var/local/redis/data}
 REDIS_PORT=${REDIS_PORT-6379}
 REDIS_VERSION=${REDIS_VERSION-default}
 
@@ -19,55 +21,36 @@ REDIS_VERSION=${REDIS_VERSION-default}
 
 notify "Installing REDIS..."
 
-mkdir -p ${REDIS_LAUNCHER_DIR} ${REDIS_LOG_DIR} ${REDIS_DATA_DIR} ${REDIS_CONFIG_DIR} ${REDIS_LAUNCHER_DIR}/src
+OWNER=$LAUNCHER_OWNER ./bits/bootstrap/mkdir \
+  LAUNCHER_DIR \
+  REDIS_LAUNCHER_DIR \
+  REDIS_LOG_DIR \
+  REDIS_DATA_DIR \
+  REDIS_CONFIG_DIR \
+  ${REDIS_LAUNCHER_DIR}/src
 
 notify "  -- Copying config files"
 
-TEMPLATE=./submodules/redis/files/redis.conf LOCATION=${REDIS_CONFIG_DIR}/redis.conf ./submodules/docker/copyif
+TEMPLATE=./bits/redis/files/redis.conf LOCATION=${REDIS_CONFIG_DIR}/redis.conf ./bits/docker/copyif
 
 if [[ "$REDIS_VERSION" != "default" ]]; then
   REDIS_SRC_FILE=${REDIS_LAUNCHER_DIR}/src/redis-${REDIS_VERSION}.tar.gz
   if [[ ! -e $REDIS_SRC_FILE ]]; then
     (cd ${REDIS_LAUNCHER_DIR}/src/ && wget http://download.redis.io/releases/redis-${REDIS_VERSION}.tar.gz)
   fi
-  cp ./submodules/redis/files/redis_version.dockerfile ${REDIS_LAUNCHER_DIR}/Dockerfile
+  TEMPLATE=./bits/redis/files/redis_version.dockerfile LOCATION=$REDIS_LAUNCHER_DIR/Dockerfile ./bits/docker/copyif
   sed -i "s|@REDIS_VERSION@|$REDIS_VERSION|g" ${REDIS_LAUNCHER_DIR}/Dockerfile
 else
-  cp ./submodules/redis/files/redis_default.dockerfile ${REDIS_LAUNCHER_DIR}/Dockerfile
+  TEMPLATE=./bits/redis/files/redis_default.dockerfile LOCATION=$REDIS_LAUNCHER_DIR/Dockerfile ./bits/docker/copyif
 fi
 
-LAUNCHER_DIR=$REDIS_LAUNCHER_DIR NAME=redis ./submodules/docker/build
+LAUNCHER_DIR=$REDIS_LAUNCHER_DIR NAME=redis ./bits/docker/build
 
 notify "  -- Creating helper scripts"
-echo "#!/bin/bash
-docker run -i -t \\
-  -v ${REDIS_LOG_DIR}:/log \\
-  -v ${REDIS_DATA_DIR}:/data \\
-  -v ${REDIS_CONFIG_DIR}:/config \\
-  --link redis:rdb \\
-  redis /bin/bash
-" > ${REDIS_LAUNCHER_DIR}/debug
+NAME=redis DIR=$REDIS_LAUNCHER_DIR \
+  START=./bits/redis/files/_start \
+  DEBUG=./bits/redis/files/_debug \
+  ./bits/docker/helpers
 
-printf "%b" "#!/bin/bash
-CONTAINER_ID=\`${REDIS_LAUNCHER_DIR}/running\`
-if [[ \"\$CONTAINER_ID\" == \"\" ]]; then
-  echo \"Starting redis (${REDIS_PORT})\"
-  docker rm redis > /dev/null 2>&1
-  docker run -d -t \\
-    -p ${REDIS_PORT}:6379 \\
-    -v ${REDIS_LOG_DIR}:/log \\
-    -v ${REDIS_CONFIG_DIR}:/config \\
-    -v ${REDIS_DATA_DIR}:/data \\
-    --name redis \\
-    redis 2> /dev/null > ${REDIS_LAUNCHER_DIR}/container.pid
-else
-  echo \"Container redis already running, ${REDIS_LAUNCHER_DIR}/restart to restart it\"
-fi
-" > ${REDIS_LAUNCHER_DIR}/start
-
-NAME=redis DIR=$REDIS_LAUNCHER_DIR ./submodules/docker/helpers
-
-chmod 755 $REDIS_LAUNCHER_DIR/start
-chmod 755 $REDIS_LAUNCHER_DIR/debug
 
 notify "DONE, Installing REDIS."

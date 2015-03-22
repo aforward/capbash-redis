@@ -1,0 +1,7 @@
+docker run -d -t
+  -p ${REDIS_PORT}:6379
+  -v ${REDIS_LOG_DIR}:/log
+  -v ${REDIS_CONFIG_DIR}:/config
+  -v ${REDIS_DATA_DIR}:/data
+  --name redis
+  redis
