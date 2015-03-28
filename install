@@ -48,12 +48,6 @@ else
 fi
 
 LAUNCHER_DIR=$REDIS_LAUNCHER_DIR NAME=redis ./bits/docker/build
-
-notify "  -- Creating helper scripts"
-NAME=redis DIR=$REDIS_LAUNCHER_DIR \
-  START=./bits/redis/files/_start \
-  DEBUG=./bits/redis/files/_debug \
-  ./bits/docker/helpers
-
+NAME=redis DIR=$REDIS_LAUNCHER_DIR BIT=redis ./bits/docker/helpers
 
 notify "DONE, Installing REDIS."
