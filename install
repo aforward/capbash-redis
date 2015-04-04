@@ -15,7 +15,7 @@ export DATA_DIR=${DATA_DIR-/var/local/data}
 export REDIS_DATA_DIR=${REDIS_DATA_DIR-$DATA_DIR/redis}
 export REDIS_PORT=${REDIS_PORT-6379}
 export REDIS_HOST=${REDIS_HOST-"127.0.0.1:"}
-REDIS_VERSION=${REDIS_VERSION-default}
+export REDIS_VERSION=${REDIS_VERSION-latest}
 
 #-----------
 # Install Script
@@ -35,11 +35,11 @@ notify "  -- Copying config files"
 
 TEMPLATE=./bits/redis/files/redis.conf LOCATION=${REDIS_CONFIG_DIR}/redis.conf ./bits/docker/copyif
 
-if [[ "$REDIS_VERSION" != "default" ]]; then
-  REDIS_SRC_FILE=${REDIS_LAUNCHER_DIR}/src/redis-${REDIS_VERSION}.tar.gz
-  if [[ ! -e $REDIS_SRC_FILE ]]; then
-    (cd ${REDIS_LAUNCHER_DIR}/src/ && wget http://download.redis.io/releases/redis-${REDIS_VERSION}.tar.gz)
-  fi
+if [[ "$REDIS_VERSION" != "latest" ]]; then
+  SRC_NAME=redis-${REDIS_VERSION}.tar.gz SRC_DIR=${REDIS_LAUNCHER_DIR}/src \
+    NAME="Redis ${REDIS_VERSION}" \
+    REMOTE_URL=http://download.redis.io/releases \
+    ./bits/bootstrap/wget
   TEMPLATE=./bits/redis/files/redis_version.dockerfile LOCATION=$REDIS_LAUNCHER_DIR/Dockerfile \
     ./bits/docker/copyif \
     @REDIS_VERSION@ $REDIS_VERSION
@@ -47,7 +47,7 @@ else
   TEMPLATE=./bits/redis/files/redis_default.dockerfile LOCATION=$REDIS_LAUNCHER_DIR/Dockerfile ./bits/docker/copyif
 fi
 
-LAUNCHER_DIR=$REDIS_LAUNCHER_DIR NAME=redis ./bits/docker/build
-NAME=redis DIR=$REDIS_LAUNCHER_DIR BIT=redis ./bits/docker/helpers
+LAUNCHER_DIR=$REDIS_LAUNCHER_DIR NAME=redis VERSION=$REDIS_VERSION ./bits/docker/build
+NAME=redis DIR=$REDIS_LAUNCHER_DIR BIT=redis VERSION=$REDIS_VERSION ./bits/docker/helpers
 
 notify "DONE, Installing REDIS."
