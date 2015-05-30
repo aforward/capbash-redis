@@ -61,6 +61,8 @@ fi
 LAUNCHER_DIR=$REDIS_LAUNCHER_DIR NAME=redis VERSION=$REDIS_VERSION ./bits/docker/build
 NAME=redis DIR=$REDIS_LAUNCHER_DIR BIT=redis VERSION=$REDIS_VERSION ./bits/docker/helpers
 
+DIR=./bits/redis ./bits/bootstrap/cleanup
+
 if [[ "$REDIS_DISPLAY" == "standalone" ]]; then
   notify "DONE, Installing REDIS."
 else
