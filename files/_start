@@ -1,6 +1,6 @@
 docker run -d -t
+  -e 'DAEMON=false'
   -p ${REDIS_HOST}${REDIS_PORT}:6379
-  -v ${REDIS_LOG_DIR}:/log
   -v ${REDIS_CONFIG_DIR}:/config
   -v ${REDIS_DATA_DIR}:/data
   --name redis

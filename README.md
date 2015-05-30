@@ -28,7 +28,6 @@ The available configurations include:
 export LAUNCHER_OWNER=${LAUNCHER_OWNER-$USER}
 export LAUNCHER_DIR=${LAUNCHER_DIR-/var/local}
 export REDIS_LAUNCHER_DIR=${REDIS_LAUNCHER_DIR-$LAUNCHER_DIR/redis}
-export REDIS_LOG_DIR=${REDIS_LOG_DIR-/var/log/redis}
 export REDIS_CONFIG_DIR=${REDIS_CONFIG_DIR-$REDIS_LAUNCHER_DIR/config}
 export DATA_DIR=${DATA_DIR-/var/local/data}
 export REDIS_DATA_DIR=${REDIS_DATA_DIR-$DATA_DIR/redis}

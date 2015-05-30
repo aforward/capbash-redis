@@ -9,7 +9,6 @@ export LAUNCHER_OWNER=${LAUNCHER_OWNER-$USER}
 export LAUNCHER_DIR=${LAUNCHER_DIR-/var/local}
 export REDIS_LAUNCHER_DIR=${REDIS_LAUNCHER_DIR-$LAUNCHER_DIR/redis}
 export LOG_DIR=${LOG_DIR-/var/log}
-export REDIS_LOG_DIR=${REDIS_LOG_DIR-$LOG_DIR/redis}
 export REDIS_CONFIG_DIR=${REDIS_CONFIG_DIR-$REDIS_LAUNCHER_DIR/config}
 export DATA_DIR=${DATA_DIR-/var/local/data}
 export REDIS_DATA_DIR=${REDIS_DATA_DIR-$DATA_DIR/redis}
@@ -17,23 +16,35 @@ export REDIS_PORT=${REDIS_PORT-6379}
 export REDIS_HOST=${REDIS_HOST-"127.0.0.1:"}
 export REDIS_VERSION=${REDIS_VERSION-latest}
 
+REDIS_DISPLAY=${REDIS_DISPLAY-standalone} # or internal
+
 #-----------
 # Install Script
 #-----------
 
-notify "Installing REDIS..."
+if [[ "$REDIS_DISPLAY" == "standalone" ]]; then
+  notify "Installing REDIS ($REDIS_VERSION)..."
+else
+  notify "  -- Install REDIS ($REDIS_VERSION)..."
+fi
 
 OWNER=$LAUNCHER_OWNER ./bits/bootstrap/mkdir \
   LAUNCHER_DIR \
   REDIS_LAUNCHER_DIR \
-  REDIS_LOG_DIR \
   REDIS_DATA_DIR \
   REDIS_CONFIG_DIR \
-  ${REDIS_LAUNCHER_DIR}/src
+  ${REDIS_LAUNCHER_DIR}/src \
+  ${REDIS_LAUNCHER_DIR}/bin
 
 notify "  -- Copying config files"
+TEMPLATE=./bits/redis/files/config LOCATION=${REDIS_LAUNCHER_DIR}/config ./bits/docker/copyallif
 
-TEMPLATE=./bits/redis/files/redis.conf LOCATION=${REDIS_CONFIG_DIR}/redis.conf ./bits/docker/copyif
+debug "  -- Making logger available on node"
+TEMPLATE=./bits/bootstrap/logging LOCATION=$REDIS_LAUNCHER_DIR/bin/logging ./bits/docker/copyif
+TEMPLATE=./bits/bootstrap/failonerrors LOCATION=$REDIS_LAUNCHER_DIR/bin/failonerrors ./bits/docker/copyif
+
+OWNER=$LAUNCHER_OWNER TEMPLATE=./bits/redis/files/bin LOCATION=$REDIS_LAUNCHER_DIR/bin \
+  ./bits/docker/copyallif
 
 if [[ "$REDIS_VERSION" != "latest" ]]; then
   SRC_NAME=redis-${REDIS_VERSION}.tar.gz SRC_DIR=${REDIS_LAUNCHER_DIR}/src \
@@ -50,4 +61,8 @@ fi
 LAUNCHER_DIR=$REDIS_LAUNCHER_DIR NAME=redis VERSION=$REDIS_VERSION ./bits/docker/build
 NAME=redis DIR=$REDIS_LAUNCHER_DIR BIT=redis VERSION=$REDIS_VERSION ./bits/docker/helpers
 
-notify "DONE, Installing REDIS."
+if [[ "$REDIS_DISPLAY" == "standalone" ]]; then
+  notify "DONE, Installing REDIS."
+else
+  notify "  -- DONE, Installing REDIS."
+fi

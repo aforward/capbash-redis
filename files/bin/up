@@ -1,0 +1,19 @@
+#!/bin/bash
+source logging
+
+SERVICE_LOG_DIR=/opt/log/redis
+LOG_FILE=$SERVICE_LOG_DIR/startup.log
+mkdir -p $SERVICE_LOG_DIR && touch $LOG_FILE
+
+if [[ -e "$SERVICE_LOG_DIR/redis.pid" ]]; then
+  notify "REDIS appears to already be running (`cat $SERVICE_LOG_DIR/redis.pid`)"
+  notify "  -- remove $SERVICE_LOG_DIR/redis.pid if that's note the case"
+elif [[ "$DAEMON" == "true" ]]; then
+  notify "Starting redis ($LOG_FILE)"
+  notify "  -- Starting redis daemon ($SERVICE_LOG_DIR/redis.pid)"
+  nohup redis-server /opt/config/debug.conf 2>&1 & echo $! > $SERVICE_LOG_DIR/redis.pid
+  notify "DONE, Starting redis (`cat $SERVICE_LOG_DIR/redis.pid`)"
+else
+  notify "Starting REDIS in the foreground"
+  redis-server /opt/config/redis.conf
+fi
